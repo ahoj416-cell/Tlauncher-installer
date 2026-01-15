@@ -28,18 +28,15 @@ echo [MOUSE] Nastavuji prostredi...
 if not exist "%MOUSE_BIN%" mkdir "%MOUSE_BIN%"
 if not exist "%MOUSE_APPS%" mkdir "%MOUSE_APPS%"
 
-:: Kopie skriptu
 if /I not "%~dp0"=="%MOUSE_BIN%\" (
     copy /Y "%~f0" "%MOUSE_BIN%\mouse.bat" >nul
     echo [OK] Mouse zkopirovana do %MOUSE_BIN%
 )
 
-:: Pridani do PATH (Jednoradkova verze pro stabilitu)
 echo [MOUSE] Pridavam do PATH...
 powershell -NoProfile -Command "$p=[Environment]::GetEnvironmentVariable('Path','User'); if ($p -notlike '*%MOUSE_BIN%*') { [Environment]::SetEnvironmentVariable('Path', $p + ';%MOUSE_BIN%', 'User'); Write-Host '[OK] Pridano do PATH.' -Fg Green } else { Write-Host '[INFO] Uz je v PATH.' -Fg Yellow }"
 
 echo.
-
 echo Hotovo! Nyni zavri toto okno, otevri nove a napis 'mouse'.
 goto :EOF
 
@@ -50,12 +47,30 @@ if "%2"=="" (
 )
 
 set "APP_NAME=%2"
-echo [MOUSE] Hledam '%APP_NAME%'...
+echo [MOUSE] Ziskavam info o '%APP_NAME%'...
 
-:: PowerShell instalator (stazene na jeden radek pro bezpecnost v BAT)
-powershell -NoProfile -Command "$u='%REPO_URL%%APP_NAME%.json'; try { $m=iwr $u -UseBasicParsing | ConvertFrom-Json; Write-Host ('[INFO] Verze: '+$m.version); $dir='%MOUSE_APPS%
-%APP_NAME%'; md $dir -Force|Out-Null; $exe=Split-Path $m.url -Leaf; $out=Join-Path $dir $exe; Write-Host '[DOWN] Stahuji...'; iwr $m.url -OutFile $out; $shim='%MOUSE_BIN%
-%APP_NAME%.cmd'; sc $shim ('@echo off'+[Environment]::NewLine+'"'+$out+'" %*'); Write-Host ('[OK] Nainstalovano: '+$out) -Fg Green } catch { Write-Error 'Chyba stahovani nebo aplikace neexistuje.' }"
+:: PowerShell: Stazeni JSONu, pak stazeni EXE s Progress Barem
+powershell -NoProfile -Command ^
+    "$u='%REPO_URL%%APP_NAME%.json'; " ^
+    "try { " ^
+    "    $m = iwr $u -UseBasicParsing | ConvertFrom-Json; " ^
+    "    Write-Host ('[INFO] Verze: ' + $m.version) -Fg Cyan; " ^
+    "    $dir = '%MOUSE_APPS%\%APP_NAME%'; " ^
+    "    md $dir -Force | Out-Null; " ^
+    "    $exe = Split-Path $m.url -Leaf; " ^
+    "    $out = Join-Path $dir $exe; " ^
+    "    " ^
+    "    Write-Host '[DOWN] Stahuji soubor...' -NoNewline; " ^
+    "    Import-Module BitsTransfer; " ^
+    "    Start-BitsTransfer -Source $m.url -Destination $out -DisplayName ('Stahuji ' + $exe); " ^
+    "    Write-Host ' [HOTOVO]' -Fg Green; " ^
+    "    " ^
+    "    $shim = '%MOUSE_BIN%\%APP_NAME%.cmd'; " ^
+    "    sc $shim ('@echo off'+[Environment]::NewLine+'\"'+$out+'\" %%*'); " ^
+    "    Write-Host ('[OK] Nainstalovano: ' + $out) -Fg Green; " ^
+    "} catch { " ^
+    "    Write-Error ('[CHYBA] ' + $_.Exception.Message); " ^
+    "}"
 
 goto :EOF
 
