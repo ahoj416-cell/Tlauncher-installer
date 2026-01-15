@@ -1,5 +1,4 @@
 {
-    "version": "Legacy",
-    "url": "https://tlauncher.org/jar", 
-    "bin": "TLauncher.exe"
+    "version": "1.266-v2",
+    "url": "https://raw.githubusercontent.com/ahoj416-cell/Tlauncher-installer/main/starter-core-1.266-v2.exe"
 }
